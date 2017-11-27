@@ -1,0 +1,7 @@
+dotnet-fable
+Fable.Core
+Fable.Import.Browser
+Fable.Import.Pixi
+Fable.Import.Pixi.Particles
+Fable.Import.Animejs
+Fable.Import.Pixi.Sound

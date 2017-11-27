@@ -1,0 +1,10 @@
+source https://nuget.org/api/v2
+storage:none
+
+clitool dotnet-fable
+nuget Fable.Core
+nuget Fable.Import.Animejs
+nuget Fable.Import.Browser
+nuget Fable.Import.Pixi
+nuget Fable.Import.Pixi.Particles
+nuget Fable.Import.Pixi.Sound
