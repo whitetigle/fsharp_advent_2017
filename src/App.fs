@@ -51,15 +51,6 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch  (app:PIXI
       |> SpriteUtils.addToContainer hillTwo
       |> ignore
 
-      let margin = 30.
-
-      PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "date")
-      |> SpriteUtils.scaleTo scale scale
-      |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Right SpriteUtils.YAnchor.Bottom
-      |> SpriteUtils.moveTo (renderer.width-margin) (renderer.height-margin)
-      |> SpriteUtils.addToContainer hillTwo
-      |> ignore
-
       PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "border")
       |> SpriteUtils.scaleTo scale scale
       |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Middle
@@ -71,35 +62,28 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch  (app:PIXI
       let config = Assets.getObj "snowEmitter"
       printfn "%A" config
 
-      let emitter = PIXI.particles.Emitter( rearAnimLayer, !![|texture|], config.Value )
-      emitter.updateOwnerPos(0.,0.)
-      emitter.emit <- true
-
-      let emitter1 = PIXI.particles.Emitter( middleAnimLayer, !![|texture|], config.Value )
-      emitter1.updateOwnerPos(0.,0.)
-      emitter1.emit <- true
-
-      let emitter2 = PIXI.particles.Emitter( middleAnimLayer, !![|texture|], config.Value )
-      emitter2.updateOwnerPos(0.,0.)
-      emitter2.emit <- true
-
-      let emitter3 = PIXI.particles.Emitter( rearAnimLayer, !![|texture|], config.Value )
-      emitter3.updateOwnerPos(0.,0.)
-      emitter3.emit <- true
-
       let snowEmitters =
-        [|
-          (emitter,{X=0.;Y= renderer.height*0.5;Angle=0.;AngleVariation=400.;Way=1.0})
-          (emitter1,{X=renderer.width * 0.5;Y= renderer.height*0.9;Angle=0.;AngleVariation=400.;Way= -1.0})
-          (emitter3,{X=renderer.width * 0.5;Y= renderer.height*0.9;Angle=0.;AngleVariation=400.;Way= 1.0})
-          (emitter2,{X=renderer.width;Y= renderer.height*0.5;Angle=0.;AngleVariation=400.;Way= -1.0})
-        |]
+        [
+          (rearAnimLayer,0.,1.0)
+          (middleAnimLayer,renderer.width,-1.0)
+          (middleAnimLayer,renderer.width * 0.6,-1.0)
+          (rearAnimLayer,0.,-1.0)
+          (rearAnimLayer,renderer.width*0.5,1.0)
+        ]
+        |> Seq.map( fun (layer, x, way) ->
+          let emitter = PIXI.particles.Emitter( layer, !![|texture|], config.Value )
+          emitter.updateOwnerPos(0.,0.)
+          emitter.emit <- true
+          (emitter,{X=x;Y= renderer.height*0.5;Angle=0.;AngleVariation=500.;Way=way})
+        )
+        |> Seq.toArray
 
       let curtain = PIXI.Graphics()
       root.mask <- !!curtain
 
       let newModel =
         {
+           SimpleEmitters = []
            SnowEmitters = snowEmitters
            Curtain = Some {Graphics=curtain;Radius=0.}
         }
@@ -148,6 +132,7 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch  (app:PIXI
       let maxSpace = (float message.Length) * space
       let xMargin = (renderer.width - maxSpace) * 0.5 + space * 0.5
 
+      let targetPosition = renderer.height * 0.4
       message
       |> Seq.iteri( fun i char ->
 
@@ -155,31 +140,55 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch  (app:PIXI
         | SPACE -> ()
         | _ ->
           let pixname = pixname char
+          let x = xMargin + (float i) * space
 
           let s =
             PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture pixname)
             |> SpriteUtils.scaleTo scale scale
             |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Top
-            |> SpriteUtils.moveTo (xMargin + (float i) * space ) renderer.height
+            |> SpriteUtils.moveTo x renderer.height
             |> SpriteUtils.addToLayer "rearAnimLayer"
 
           let duration = 500.
           let startupDelay = 1000.
           let target = s.position
           let options = jsOptions<AnimInput> (fun o ->
-            o.Item <- "y", renderer.height * 0.4
+            o.Item <- "y", targetPosition
             o.targets <- Some !!target
             o.duration <- !!duration
-            o.elasticity <- !!1000.
-            o.easing <- !!EaseInOutElastic
+            o.elasticity <- !!500.
+            o.easing <- !!EaseInCubic
             o.delay <- !!((float i) * duration + startupDelay)
           )
-          Fable.AnimeUtils.GetInstance (Some options) |> ignore
+          let instance = Fable.AnimeUtils.GetInstance (Some options)
+          instance.complete <- fun _ ->
+            Prepare (AddLetterAnim( x,targetPosition + 15. * scale)) |> dispatch
       )
       DonePreparing |> dispatch
       rmodel
 
+    | AddLetterAnim(x,y) ->
+
+        let texture = Fable.Pixi.SpriteUtils.getTexture "Snow50px"
+        let config = Assets.getObj "letterEmitter"
+        let layer = Layers.get "rearAnimLayer"
+        let updatedModel =
+          match layer with
+          | Some l ->
+            let emitter = PIXI.particles.Emitter( l, !![|texture|], config.Value )
+            emitter.updateOwnerPos(x,y)
+            emitter.emit <- true
+            { rmodel with SimpleEmitters=rmodel.SimpleEmitters @ [emitter]}
+
+          | None -> rmodel
+
+        DonePreparing |> dispatch
+        updatedModel
+
   | Run ->
+
+    for emitter in rmodel.SimpleEmitters do
+      emitter.update (delta * 0.001)
 
     let updatedEmitters =
       [|
@@ -269,6 +278,7 @@ let init() =
 //    ("hydro",sprintf "%s/hydro.ogg" path)
 
     // particles
+    ("letterEmitter",sprintf "%s/letter.json" path)
     ("snowEmitter",sprintf "%s/snow.json" path)
     ("trailEmitter",sprintf "%s/trail.json" path)
     ("treepopEmitter",sprintf "%s/treepop.json" path)
@@ -285,6 +295,7 @@ let init() =
     Config.addTexturesToStore Config.bigPicList res
 
     // add our particle systems
+    Assets.addObj "letterEmitter" res?letterEmitter?data
     Assets.addObj "snowEmitter" res?snowEmitter?data
     Assets.addObj "trailEmitter" res?trailEmitter?data
     Assets.addObj "treepopEmitter" res?treepopEmitter?data

@@ -3,8 +3,6 @@ module Types
 open Fable.Core
 open Fable.Import.Pixi
 open Fable.Import.Pixi.Particles
-open System.Runtime.InteropServices.ComTypes
-open System
 
 
 type SnowTarget = {
@@ -22,6 +20,7 @@ type Curtain = {
 }
 
 type RenderModel = {
+  SimpleEmitters : PIXI.particles.Emitter list
   SnowEmitters : (PIXI.particles.Emitter*SnowTarget) []
   Curtain: Curtain option
 }
@@ -40,12 +39,10 @@ type Chars =
   | A
   | SPACE
 
-type Event=
-  | PointerDown
-
 type SubState =
   | LaunchCurtain
   | LaunchTitle
+  | AddLetterAnim of float * float
 
 type StateModel =
   | Init
