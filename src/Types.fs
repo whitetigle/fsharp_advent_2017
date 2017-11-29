@@ -1,7 +1,10 @@
 module Types
 
+open Fable.Core
 open Fable.Import.Pixi
 open Fable.Import.Pixi.Particles
+open System.Runtime.InteropServices.ComTypes
+open System
 
 
 type SnowTarget = {
@@ -18,13 +21,34 @@ type Curtain = {
   Radius : Radius
 }
 
-type Model = {
+type RenderModel = {
   SnowEmitters : (PIXI.particles.Emitter*SnowTarget) []
-  Curtain: Curtain
+  Curtain: Curtain option
 }
 
-type States =
+[<StringEnum>]
+type Chars =
+  | M
+  | E
+  | R
+  | Y
+  | C
+  | H
+  | I
+  | S
+  | T
+  | A
+  | SPACE
+
+type Event=
+  | PointerDown
+
+type SubState =
+  | LaunchCurtain
+  | LaunchTitle
+
+type StateModel =
   | Init
-  | Run of Model
-  | LaunchCurtain of Model
-  | DoNothing
+  | Run
+  | Prepare of SubState
+  | DonePreparing
