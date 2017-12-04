@@ -26,7 +26,7 @@ module.exports = {
   entry: resolve('./src/game.fsproj'),
   output: {
     filename: 'bundle.js',
-    path: resolve('public'),
+    path: resolve('docs'),
     publicPath: '/'
   },
   resolve: {
@@ -48,7 +48,7 @@ module.exports = {
     "anime":"anime"
   },
   devServer: {
-    contentBase: resolve('public'),
+    contentBase: resolve('docs'),
     port: 8080,
     inline: true
   },
