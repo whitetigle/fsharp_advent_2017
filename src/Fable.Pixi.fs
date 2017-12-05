@@ -3,12 +3,52 @@ module Fable.Pixi
 open Fable.Core
 open Fable.Import.Pixi
 open Fable.Core.JsInterop
-open Fable.Naming
+open Fable.Import.Browser
+open System.Diagnostics.Tracing
 open Fable.Import.Pixi.PIXI
 
 type ExtendedSprite<'T> (texture:PIXI.Texture,data: 'T) =
   inherit PIXI.Sprite(texture)
   member this.Data = data
+
+[<StringEnum>]
+type ImgKind =
+  | Png
+  | Jpg
+  | Gif
+
+[<StringEnum>]
+type SoundKind =
+  | Ogg
+  | Mp3
+
+type AssetKind =
+  | Img of ImgKind
+  | Sound of SoundKind
+  | Json
+
+type AssetName = string
+type AssetInfo = AssetName * AssetKind
+
+
+[<Emit("$0[$1]")>]
+let get (o:obj) (idx: string): obj = jsNative
+
+[<RequireQualifiedAccess>]
+module ResourceHelper =
+
+  type ResourceObject = {
+     data: obj
+     texture: PIXI.Texture
+  }
+
+  let extractData obj fieldName =
+    let typed : ResourceObject = (get obj fieldName) :?> ResourceObject
+    typed.data
+
+  let extractTexture obj fieldName =
+    let typed : ResourceObject = (get obj fieldName) :?> ResourceObject
+    typed.texture
 
 [<RequireQualifiedAccess>]
 module Event =
@@ -28,7 +68,7 @@ module Event =
     sprite
 
 [<RequireQualifiedAccess>]
-module Assets =
+module AssetStore =
   let mutable textures = Map.empty<string,PIXI.Texture>
   let mutable objFiles = Map.empty<string,obj>
 
@@ -43,6 +83,85 @@ module Assets =
 
   let getObj name =
      objFiles.TryFind name
+
+[<RequireQualifiedAccess>]
+module RendererHelper =
+  let getSize (app:PIXI.Application) =
+      match app.renderer with
+      | U2.Case1 r ->  (r.width,r.height)
+      | U2.Case2 r->  (r.width,r.height)
+
+[<RequireQualifiedAccess>]
+module ApplicationHelper =
+  let getApp width height (options:PIXI.ApplicationOptions option) =
+    match options with
+    | None ->
+      PIXI.Application(width, height)
+    | Some options ->
+      PIXI.Application(width, height, options)
+
+  let prepare elementId baseWidth baseHeight options =
+    let canvas : HTMLDivElement = (document.getElementById elementId) :?> HTMLDivElement
+
+    // Since the majority of screens are using a WIDE ratio,
+    // we simply scale according to the element's width
+    let scale = canvas.clientWidth / baseWidth
+    let scale= if scale >= 1.0 then 1.0 else scale
+    let app = getApp (baseWidth*scale)  (baseHeight*scale) options
+    canvas.appendChild(app.view) |> ignore
+
+    (app,scale)
+
+
+[<RequireQualifiedAccess>]
+module CustomLoader =
+
+  let addToStore (assets:AssetInfo list) res =
+
+    // add assets to our Asset store
+    assets
+      |> Seq.iter( fun (name,assetKind) ->
+        match assetKind with
+        | Img _ ->
+          let texture = ResourceHelper.extractTexture res name
+          AssetStore.addTexture name texture
+
+        | Sound _ -> () // just don't do anything since sounds are now already available from pixi-sound
+
+        | Json ->
+          let data = ResourceHelper.extractData res name
+          AssetStore.addObj name data
+
+      )
+
+  let load (assets:AssetInfo list) path (onLoad:PIXI.loaders.Loader->PIXI.loaders.Resource->unit) =
+
+    let loader = PIXI.loaders.Loader()
+
+    // add assets to PIXI loader load list
+    assets
+      |> Seq.map( fun (name,assetKind)->
+        let extension =
+          match assetKind with
+          | Img k -> (string k).ToLower()
+          | Sound s -> (string s).ToLower()
+          | x -> (string x).ToLower()
+
+        (name,sprintf "%s/%s.%s" path name extension)
+      )
+      |> Seq.iter( fun (name,path) -> loader.add(name,path) |> ignore  )
+
+    // load assets using PIXI loader
+    loader.load( fun (loader:PIXI.loaders.Loader) (res:PIXI.loaders.Resource) ->
+
+      // store our assets in our AssetStore
+      addToStore assets res
+
+      // call callback
+      onLoad loader res
+
+    ) |> ignore
+
 
 [<RequireQualifiedAccess>]
 module Layers =
@@ -101,7 +220,7 @@ module SpriteUtils =
     sprite
 
   let getTexture name =
-    let texture = Assets.getTexture name
+    let texture = AssetStore.getTexture name
     match texture with
     | Some t -> t
     | None ->  failwith (sprintf "unknown texture %s" name)
@@ -112,7 +231,7 @@ module SpriteUtils =
     sprite
 
   let fromTexture name =
-    let texture = Assets.getTexture name
+    let texture = AssetStore.getTexture name
     match texture with
     | Some t ->
       PIXI.Sprite t

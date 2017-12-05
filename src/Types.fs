@@ -3,6 +3,7 @@ module Types
 open Fable.Core
 open Fable.Import.Pixi
 open Fable.Import.Pixi.Particles
+open Fable.Import.Pixi.Sound
 
 
 type SnowTarget = {
@@ -19,10 +20,15 @@ type Curtain = {
   Radius : Radius
 }
 
+type Emitters = PIXI.particles.Emitter list
+type SnowEmitters = (PIXI.particles.Emitter*SnowTarget) []
+
 type RenderModel = {
-  SimpleEmitters : PIXI.particles.Emitter list
-  SnowEmitters : (PIXI.particles.Emitter*SnowTarget) []
+  App: PIXI.Application
+  SimpleEmitters :Emitters
+  SnowEmitters : SnowEmitters
   Curtain: Curtain option
+  Scale:float
 }
 
 [<StringEnum>]

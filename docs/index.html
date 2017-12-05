@@ -25,7 +25,18 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background-color: #ccc;
+    background-color: #000000;
+  }
+  #spinner {
+    width:200px;
+    height:200px;
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-image:url(img/spinner.svg)
   }
   #funkypath {
     display:none;
@@ -34,11 +45,11 @@
 </head>
 <body>
   <div id="xmasCanvas"></div>
+  <div id="spinner"></div>
   <script src="libs/anime.js"></script>
   <script src="libs/pixi-particles.js"></script>
   <script src="libs/pixi-sound.js"></script>
   <script src="bundle.js"></script>
-
   <path id="funkypath" d="M18,16c0,0 -60.421,145.499 56,94c0,0 258.468,-157.682 192.001,-69.739c-66.467,87.943 -208.85,-85.457 -248.001,-24.261Z" style="fill:none;stroke:#d00;stroke-width:4.13px;"/>
 </body>
 </html>

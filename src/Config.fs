@@ -1,50 +1,37 @@
 module Config
 
-open Fable.Import.Pixi
-open Fable.Core
-open Fable.Core.JsInterop
+open Fable.Pixi
 
-[<Emit("$0[$1]")>]
-let Item (res:obj) (idx: string): obj = jsNative
-
-
-
-let bigPicList =
+// This is our list of assets
+let resources =
   [
-    "background"
-    "backMountain"
-    "border"
-    "date"
-    "frontMountain"
-    "particle"
-    "Snow50px"
-    "snowflake"
-    "star"
-    "title"
-    "backShadow"
-    "m"
-    "e"
-    "r"
-    "y"
-    "c"
-    "h"
-    "i"
-    "s"
-    "t"
-    "a"
+    "background", Img Png
+    "backMountain",Img Png
+    "border", Img Png
+    "date", Img Png
+    "frontMountain", Img Png
+    "particle", Img Png
+    "Snow50px", Img Png
+    "snowflake", Img Png
+    "star", Img Png
+    "title",Img Png
+    "backShadow",Img Png
+    "m",Img Png
+    "e",Img Png
+    "r",Img Png
+    "y",Img Png
+    "c",Img Png
+    "h",Img Png
+    "i",Img Png
+    "s",Img Png
+    "t",Img Png
+    "a",Img Png
+    "letterEmitter",Json
+    "snowEmitter",Json
+    "trailEmitter",Json
+    "treepopEmitter",Json
   ]
 
-let addAssetsToLoader assets extension path (loader:PIXI.loaders.Loader) =
-  assets
-    |> Seq.map( fun name ->
-      (name,sprintf "%s/%s.%s" path name extension)
-    )
-    |> Seq.iter( fun (name,path) -> loader.add(name,path) |> ignore  )
-
-let addTexturesToStore names res =
-
-  names
-    |> Seq.iter( fun name ->
-      let texture = !!(Item res name)?texture
-      Fable.Pixi.Assets.addTexture name texture
-    )
+let [<Literal>] BASE_WIDTH = 1920.
+let [<Literal>] BASE_HEIGHT = 1080.
+let [<Literal>] hostElementForPixiApp = "xmasCanvas"
