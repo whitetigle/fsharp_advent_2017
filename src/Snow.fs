@@ -16,6 +16,8 @@ let prepare screenWidth =
     ("middleAnimLayer",screenWidth * 0.6,Left)
     ("rearAnimLayer",0.,Left)
     ("rearAnimLayer",screenWidth*0.5,Right)
+    ("frontAnimLayer",0.,Left)
+    ("frontAnimLayer",screenWidth*0.5,Right)
   ]
   |> Seq.map( fun (layerName, x, way) ->
     let layer = Layers.useLayer layerName

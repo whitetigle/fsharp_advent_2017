@@ -4,7 +4,7 @@ open Fable.Import.Browser
 open Fable.Pixi
 
 
-let path = "./img"
+let path = "./assets"
 
 // Load assets and start game
 CustomLoader.load Config.resources path (fun loader res ->

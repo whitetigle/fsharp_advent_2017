@@ -29,6 +29,7 @@ type RenderModel = {
   App: PIXI.Application
   SnowEmitters : SnowEmitters
   Scale:float
+  Scenery: PIXI.Sprite list
 }
 
 [<StringEnum>]
@@ -48,7 +49,8 @@ type Chars =
 type SubState =
   | RiseCurtain
   | LaunchTitle
-  | AddLetterAnim of float * float
+  | PlayJingleBells
+  | SpreadGreenStars of float * float
 
 type StateModel =
   | Init

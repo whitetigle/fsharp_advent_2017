@@ -1,17 +1,14 @@
 module GameRenderer
 
-open Fable.Core
 open Fable.Core.JsInterop
-open Fable.Import
-open Fable.Import.Browser
 open Fable.Import.Animejs
-open Fable.Import.Pixi
-open Fable.Import.Pixi.Particles
+open Fable.Import.Pixi.Sound
 open Fable.Pixi
 open Types
 
-let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (delta:float): RenderModel =
+module SU = SpriteUtils
 
+let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (delta:float): RenderModel =
 
   let extractSize (rmodel:RenderModel) =
     let w,h = RendererHelper.getSize rmodel.App
@@ -42,40 +39,48 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
         "hillOne"
         "middleAnimLayer"
         "hillTwo"
+        "frontAnimLayer"
         "border"
       ] |> Seq.iter (addToLayer root)
 
       // add our scenery
-      SpriteUtils.fromTexture "background"
-      |> SpriteUtils.addToLayer "world"
-      |> ignore
+      // but hide it
+      let background =
+        SU.fromTexture "background"
+        |> SU.addToLayer "world"
+        |> SU.toggleVisible
 
-      SpriteUtils.fromTexture "backMountain"
-      |> SpriteUtils.scaleTo scale scale
-      |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Left SpriteUtils.YAnchor.Bottom
-      |> SpriteUtils.moveTo 0. h
-      |> SpriteUtils.addToLayer "hillOne"
-      |> ignore
+      let back =
+        SU.fromTexture "backMountain"
+        |> SU.scaleTo scale scale
+        |> SU.anchorTo SU.XAnchor.Left SU.YAnchor.Bottom
+        |> SU.moveTo 0. h
+        |> SU.addToLayer "hillOne"
+        |> SU.toggleVisible
 
-      SpriteUtils.fromTexture "frontMountain"
-      |> SpriteUtils.scaleTo scale scale
-      |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Left SpriteUtils.YAnchor.Bottom
-      |> SpriteUtils.moveTo 0. h
-      |> SpriteUtils.addToLayer "hillTwo"
-      |> ignore
+      let front =
+        SU.fromTexture "frontMountain"
+        |> SU.scaleTo scale scale
+        |> SU.anchorTo SU.XAnchor.Left SU.YAnchor.Bottom
+        |> SU.moveTo 0. h
+        |> SU.addToLayer "hillTwo"
+        |> SU.toggleVisible
 
-      SpriteUtils.fromTexture "border"
-      |> SpriteUtils.scaleTo scale scale
-      |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Middle
-      |> SpriteUtils.moveTo centerX centerY
-      |> SpriteUtils.addToLayer "border"
-      |> ignore
+      let border =
+        SU.fromTexture "border"
+        |> SU.scaleTo scale scale
+        |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Middle
+        |> SU.moveTo centerX centerY
+        |> SU.addToLayer "border"
+        |> SU.toggleVisible
+
 
       let newModel =
         {
            App= app
            Scale=scale
            SnowEmitters = Snow.prepare w
+           Scenery=[background;back;front;border]
         }
       newModel |> extractSize
 
@@ -89,6 +94,13 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
 
   | Prepare what ->
     match what with
+    | PlayJingleBells ->
+      let sound = PIXI.sound.Sound.from(!!"assets/xmas.ogg")
+      sound.play() |> ignore
+
+      DonePreparing |> dispatch
+      rmodel
+
     | RiseCurtain ->
 
       // Like all our animations, we will use the Prepare state
@@ -99,6 +111,10 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
       Curtain.prepare()
       |> Curtain.rise gameWidth gameHeight curtainUp
 
+      // now the curtain is ready bring back our scenery to visible
+      rmodel.Scenery
+      |> Seq.iter (SU.toggleVisible >> ignore)
+
       // No need to prepare things twice
       // just call our rendering
       DonePreparing |> dispatch
@@ -108,7 +124,6 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
     | LaunchTitle ->
       let pixname char =
         let s = string char
-        printfn "%s" s
         s.ToLower()
 
       let message = [M;E;R;R;Y;SPACE;C;H;R;I;S;T;M;A;S]
@@ -127,11 +142,11 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
           let x = xMargin + (float i) * space
 
           let s =
-            PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture pixname)
-            |> SpriteUtils.scaleTo rmodel.Scale rmodel.Scale
-            |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Top
-            |> SpriteUtils.moveTo x gameHeight
-            |> SpriteUtils.addToLayer "rearAnimLayer"
+            SU.fromTexture pixname
+            |> SU.scaleTo rmodel.Scale rmodel.Scale
+            |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Top
+            |> SU.moveTo x gameHeight
+            |> SU.addToLayer "rearAnimLayer"
 
           let duration = 500.
           let startupDelay = 1000.
@@ -145,22 +160,24 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
             o.delay <- !!((float i) * duration + startupDelay)
           )
           let instance = Fable.AnimeUtils.GetInstance (Some options)
+
+          // when we're done, spread green stars above the letter
           instance.complete <- fun _ ->
-            Prepare (AddLetterAnim( x,targetPosition + 15. * rmodel.Scale)) |> dispatch
+            Prepare (SpreadGreenStars( x,targetPosition + 15. * rmodel.Scale)) |> dispatch
       )
-      DonePreparing |> dispatch
+
+      Prepare PlayJingleBells |> dispatch
       rmodel
 
-    | AddLetterAnim(x,y) ->
+    | SpreadGreenStars(x,y) ->
 
       let textures = ["Snow50px"]
-      let config = "letterEmitter"
+      let config = "letterEmitter" // located under img/letterEmitter.json
       let layer = "rearAnimLayer"
 
 
       ParticlesEmitter.add layer textures config x y
       |> ParticlesEmitter.start
-
 
       DonePreparing |> dispatch
       rmodel

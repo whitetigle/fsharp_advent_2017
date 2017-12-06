@@ -30,6 +30,7 @@ let resources =
     "snowEmitter",Json
     "trailEmitter",Json
     "treepopEmitter",Json
+    "xmas",AssetKind.Sound Ogg
   ]
 
 let [<Literal>] BASE_WIDTH = 1920.
