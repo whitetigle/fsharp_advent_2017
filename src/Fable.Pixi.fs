@@ -5,8 +5,6 @@ open Fable.Import.Pixi
 open Fable.Import.Pixi.Particles
 open Fable.Core.JsInterop
 open Fable.Import.Browser
-open System.Diagnostics.Tracing
-open Fable.Import.Pixi.PIXI
 
 type ExtendedSprite<'T> (texture:PIXI.Texture,data: 'T) =
   inherit PIXI.Sprite(texture)
