@@ -6,10 +6,16 @@
     <Compile Include="Fable.SoundUtils.fs" />
     <Compile Include="Fable.Pixi.fs" />
     <Compile Include="Fable.AnimeUtils.fs" />
+
     <Compile Include="Types.fs" />
     <Compile Include="Config.fs" />
+
+    <Compile Include="Curtain.fs" />
+    <Compile Include="Snow.fs" />
+
     <Compile Include="GameRenderer.fs" />
     <Compile Include="Game.fs" />
+
     <Compile Include="App.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

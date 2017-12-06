@@ -2,6 +2,7 @@ module Fable.Pixi
 
 open Fable.Core
 open Fable.Import.Pixi
+open Fable.Import.Pixi.Particles
 open Fable.Core.JsInterop
 open Fable.Import.Browser
 open System.Diagnostics.Tracing
@@ -172,6 +173,12 @@ module Layers =
     layers <- layers.Add(name,c)
     root.addChild c
 
+  let useLayer name =
+     let layer = layers.TryFind name
+     match layer with
+     | Some l -> l
+     | None -> failwith (sprintf "Layer %s not found" name)
+
   let get name =
      layers.TryFind name
 
@@ -192,6 +199,7 @@ module Layers =
 
         layers <- layers.Remove name
      | None -> failwith (sprintf "unknwon layer %s" name)
+
 
 [<RequireQualifiedAccess>]
 module SpriteUtils =
@@ -224,6 +232,12 @@ module SpriteUtils =
     match texture with
     | Some t -> t
     | None ->  failwith (sprintf "unknown texture %s" name)
+
+  let getObj name =
+    let obj = AssetStore.getObj name
+    match obj with
+    | Some o -> o
+    | None ->  failwith (sprintf "unknown object %s" name)
 
   let changeTexture name (sprite:PIXI.Sprite) =
     let texture = getTexture name
@@ -305,3 +319,33 @@ module SpriteUtils =
 
   let addChild (sprite:PIXI.Sprite) (parent:PIXI.Sprite) =
     parent.addChild sprite
+
+[<RequireQualifiedAccess>]
+module ParticlesHelper =
+  let mutable emitters :PIXI.particles.Emitter list = []
+
+  let add layerName textures configName x y =
+    let textures = [|
+      for tname in textures do
+        yield SpriteUtils.getTexture tname
+    |]
+
+    let config = SpriteUtils.getObj configName
+    let layer = Layers.useLayer layerName
+
+    let emitter = PIXI.particles.Emitter( layer, textures, config )
+    emitter.updateOwnerPos(x,y)
+    emitters <- emitters @ [emitter]
+    emitter
+
+  let start (emitter:PIXI.particles.Emitter) =
+    emitter.emit <- true
+
+  let update delta=
+    for emitter in emitters do
+      emitter.update (delta * 0.001)
+
+    emitters <-
+      emitters
+      |> Seq.filter( fun e -> e.particleCount > 0. )
+      |> Seq.toList

@@ -10,125 +10,99 @@ open Fable.Import.Pixi.Particles
 open Fable.Pixi
 open Types
 
-let render (smodel: StateModel) (rmodel: RenderModel option) dispatch (delta:float): RenderModel =
+let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (delta:float): RenderModel =
 
 
   let extractSize (rmodel:RenderModel) =
     let w,h = RendererHelper.getSize rmodel.App
-    let centerX = w * 0.5
-    let centerY = h * 0.5
-    rmodel,w,h,centerX,centerY
+    rmodel,w,h
 
-  let rmodel, w, h, centerX,centerY =
-    match rmodel with
+  // the very first thing we do is check if we've got a render model to play with
+  let rmodel, gameWidth, gameHeight =
+    match renderModel with
     | Some rmodel ->
+
+      // Ok we've got a model, let's use it along with helper values
       rmodel |> extractSize
 
     | None ->
 
+      // our model is not yet ready so before we start let's prepare things up
       let app,scale = ApplicationHelper.prepare Config.hostElementForPixiApp Config.BASE_WIDTH Config.BASE_HEIGHT None
       let w,h = RendererHelper.getSize app
       let centerX = w * 0.5
       let centerY = h * 0.5
 
+      // prepare our layers
       let root = Layers.add "root" app.stage
+      let addToLayer parent name = Layers.add name parent |> ignore
+      [
+        "world"
+        "rearAnimLayer"
+        "hillOne"
+        "middleAnimLayer"
+        "hillTwo"
+        "border"
+      ] |> Seq.iter (addToLayer root)
 
-      let backLayer = Layers.add "world" root
-      let rearAnimLayer = Layers.add "rearAnimLayer" root
-      let hillOne = Layers.add "hillOne" root
-      let middleAnimLayer = Layers.add "middleAnimLayer" root
-      let hillTwo = Layers.add "hillTwo" root
-      let frontAnimLayer = Layers.add "frontAnimLayer" root
-      let border = Layers.add "border" root
-
-      PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "background")
-      |> SpriteUtils.addToContainer backLayer
+      // add our scenery
+      SpriteUtils.fromTexture "background"
+      |> SpriteUtils.addToLayer "world"
       |> ignore
 
-      PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "backMountain")
+      SpriteUtils.fromTexture "backMountain"
       |> SpriteUtils.scaleTo scale scale
       |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Left SpriteUtils.YAnchor.Bottom
       |> SpriteUtils.moveTo 0. h
-      |> SpriteUtils.addToContainer hillOne
+      |> SpriteUtils.addToLayer "hillOne"
       |> ignore
 
-      PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "frontMountain")
+      SpriteUtils.fromTexture "frontMountain"
       |> SpriteUtils.scaleTo scale scale
       |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Left SpriteUtils.YAnchor.Bottom
       |> SpriteUtils.moveTo 0. h
-      |> SpriteUtils.addToContainer hillTwo
+      |> SpriteUtils.addToLayer "hillTwo"
       |> ignore
 
-      PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture "border")
+      SpriteUtils.fromTexture "border"
       |> SpriteUtils.scaleTo scale scale
       |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Middle
       |> SpriteUtils.moveTo centerX centerY
-      |> SpriteUtils.addToContainer border
+      |> SpriteUtils.addToLayer "border"
       |> ignore
-
-      let texture = Fable.Pixi.SpriteUtils.getTexture "Snow50px"
-      let config = AssetStore.getObj "snowEmitter"
-      printfn "%A" config
-
-      let snowEmitters =
-        [
-          (rearAnimLayer,0.,1.0)
-          (middleAnimLayer,w,-1.0)
-          (middleAnimLayer,w * 0.6,-1.0)
-          (rearAnimLayer,0.,-1.0)
-          (rearAnimLayer,w*0.5,1.0)
-        ]
-        |> Seq.map( fun (layer, x, way) ->
-          let emitter = PIXI.particles.Emitter( layer, !![|texture|], config.Value )
-          emitter.updateOwnerPos(0.,0.)
-          emitter.emit <- true
-          (emitter,{X=x;Y= w*0.5;Angle=0.;AngleVariation=500.;Way=way})
-        )
-        |> Seq.toArray
-
-      let curtain = PIXI.Graphics()
-      root.mask <- !!curtain
 
       let newModel =
         {
            App= app
            Scale=scale
-           SimpleEmitters = []
-           SnowEmitters = snowEmitters
-           Curtain = Some {Graphics=curtain;Radius=0.}
+           SnowEmitters = Snow.prepare w
         }
       newModel |> extractSize
 
-
-  match smodel with
+  // Now we have a RenderModel ready to use we'll do things according to the StateModel
+  match stateModel with
   | Init ->
-    printfn "%A" smodel
-    Prepare LaunchCurtain |> dispatch
+
+    // Ok, now we're all set, let's rise our curtain
+    Prepare RiseCurtain |> dispatch
     rmodel
 
   | Prepare what ->
     match what with
-    | LaunchCurtain ->
-      let curtain =
-        match rmodel.Curtain with
-        | Some c -> c
-        | None -> failwith "No curtain found there"
+    | RiseCurtain ->
 
-      let duration = 4000.
-      let options = jsOptions<AnimInput> (fun o ->
-        o.Item <- "Radius",w * 0.7
-        o.targets <- Some !!curtain
-        o.duration <- !!duration
-  //          o.elasticity <- !!500.
-        o.easing <- !!EaseInCirc
-      )
-      let instance : AnimInstance = Fable.AnimeUtils.GetInstance (Some options)
-      instance.run <- fun _ ->
-        curtain.Graphics.beginFill(0xFFFFFF) |> ignore
-        curtain.Graphics.drawCircle(w * 0.5,h * 0.5,curtain.Radius) |> ignore
-        curtain.Graphics.endFill() |> ignore
-      instance.complete <- fun _ -> (Prepare LaunchTitle) |> dispatch
+      // Like all our animations, we will use the Prepare state
+      // basically we prepare our animation and change the state when done
+      // so here we'll launch our title animation once the curtain's been raised
+      let curtainUp _ = (Prepare LaunchTitle) |> dispatch
+
+      Curtain.prepare()
+      |> Curtain.rise gameWidth gameHeight curtainUp
+
+      // No need to prepare things twice
+      // just call our rendering
       DonePreparing |> dispatch
+
       rmodel
 
     | LaunchTitle ->
@@ -140,9 +114,9 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch (delta:flo
       let message = [M;E;R;R;Y;SPACE;C;H;R;I;S;T;M;A;S]
       let space = 100. * rmodel.Scale
       let maxSpace = (float message.Length) * space
-      let xMargin = (w - maxSpace) * 0.5 + space * 0.5
+      let xMargin = (gameWidth - maxSpace) * 0.5 + space * 0.5
 
-      let targetPosition = h * 0.4
+      let targetPosition = gameHeight * 0.4
       message
       |> Seq.iteri( fun i char ->
 
@@ -156,7 +130,7 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch (delta:flo
             PIXI.Sprite (Fable.Pixi.SpriteUtils.getTexture pixname)
             |> SpriteUtils.scaleTo rmodel.Scale rmodel.Scale
             |> SpriteUtils.anchorTo SpriteUtils.XAnchor.Center SpriteUtils.YAnchor.Top
-            |> SpriteUtils.moveTo x h
+            |> SpriteUtils.moveTo x gameHeight
             |> SpriteUtils.addToLayer "rearAnimLayer"
 
           let duration = 500.
@@ -179,56 +153,25 @@ let render (smodel: StateModel) (rmodel: RenderModel option) dispatch (delta:flo
 
     | AddLetterAnim(x,y) ->
 
-        let texture = Fable.Pixi.SpriteUtils.getTexture "Snow50px"
-        let config = AssetStore.getObj "letterEmitter"
-        let layer = Layers.get "rearAnimLayer"
-        let updatedModel =
-          match layer with
-          | Some l ->
-            let emitter = PIXI.particles.Emitter( l, !![|texture|], config.Value )
-            emitter.updateOwnerPos(x,y)
-            emitter.emit <- true
-            { rmodel with SimpleEmitters=rmodel.SimpleEmitters @ [emitter]}
+      let textures = ["Snow50px"]
+      let config = "letterEmitter"
+      let layer = "rearAnimLayer"
 
-          | None -> rmodel
 
-        DonePreparing |> dispatch
-        updatedModel
+      ParticlesHelper.add layer textures config x y
+      |> ParticlesHelper.start
 
-  | Run ->
 
-    for emitter in rmodel.SimpleEmitters do
-      emitter.update (delta * 0.001)
+      DonePreparing |> dispatch
+      rmodel
 
-    let updatedEmitters =
-      [|
-        for (emitter, data) in rmodel.SnowEmitters do
-          let way = data.Way
-          let x = data.X + ( 3. * way )
-          let way =
-            match way with
-            | ww when ww < 0. ->
-              if x < -500. then 1.0 else ww
-            | ww when ww > 0. ->
-              if x > ww + 500. then -1.0 else ww
+  | Render ->
 
-          let angle = JS.Math.sin( data.Angle ) * data.AngleVariation
-          let y = data.Y + angle
+    // update our emitters
+    ParticlesHelper.update delta
 
-          emitter.updateOwnerPos(x,y)
-          emitter.update (delta * 0.001)
-
-          yield
-            emitter,
-            { data with
-                X=x
-                Angle=data.Angle + 1.0
-                Way=way
-            }
-
-      |]
-
+    // update our snow effects and model accordingly
     { rmodel with
-        SnowEmitters = updatedEmitters
+       SnowEmitters = Snow.update rmodel.SnowEmitters gameWidth delta
     }
   | _ -> rmodel

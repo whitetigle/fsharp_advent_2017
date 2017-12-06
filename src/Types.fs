@@ -6,12 +6,15 @@ open Fable.Import.Pixi.Particles
 open Fable.Import.Pixi.Sound
 
 
+type Way = Left|Right
+
 type SnowTarget = {
   X : float
   Y : float
   Angle : float
   AngleVariation : float
-  Way : float
+  Speed: float
+  Way : Way
 }
 
 type Radius = float
@@ -20,14 +23,11 @@ type Curtain = {
   Radius : Radius
 }
 
-type Emitters = PIXI.particles.Emitter list
 type SnowEmitters = (PIXI.particles.Emitter*SnowTarget) []
 
 type RenderModel = {
   App: PIXI.Application
-  SimpleEmitters :Emitters
   SnowEmitters : SnowEmitters
-  Curtain: Curtain option
   Scale:float
 }
 
@@ -46,12 +46,12 @@ type Chars =
   | SPACE
 
 type SubState =
-  | LaunchCurtain
+  | RiseCurtain
   | LaunchTitle
   | AddLetterAnim of float * float
 
 type StateModel =
   | Init
-  | Run
+  | Render
   | Prepare of SubState
   | DonePreparing

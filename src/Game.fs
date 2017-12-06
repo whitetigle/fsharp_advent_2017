@@ -25,7 +25,7 @@ let start =
       (smodel, events)
       ||> Seq.fold (fun smodel ev ->
         match ev with
-        | DonePreparing -> Run
+        | DonePreparing -> Render
         | _ -> ev
       )
 
