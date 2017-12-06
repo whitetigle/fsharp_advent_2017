@@ -321,7 +321,7 @@ module SpriteUtils =
     parent.addChild sprite
 
 [<RequireQualifiedAccess>]
-module ParticlesHelper =
+module ParticlesEmitter =
   let mutable emitters :PIXI.particles.Emitter list = []
 
   let add layerName textures configName x y =

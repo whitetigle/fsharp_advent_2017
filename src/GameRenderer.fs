@@ -158,8 +158,8 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
       let layer = "rearAnimLayer"
 
 
-      ParticlesHelper.add layer textures config x y
-      |> ParticlesHelper.start
+      ParticlesEmitter.add layer textures config x y
+      |> ParticlesEmitter.start
 
 
       DonePreparing |> dispatch
@@ -168,7 +168,7 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
   | Render ->
 
     // update our emitters
-    ParticlesHelper.update delta
+    ParticlesEmitter.update delta
 
     // update our snow effects and model accordingly
     { rmodel with
