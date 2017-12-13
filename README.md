@@ -4,7 +4,7 @@ This project aims at showing a complet Fable based animation featuring PixiJS an
 
 A small article about this project is available for you to read on [Medium](https://medium.com/@whitetigle/merry-christmas-in-true-fable-color-999f023e1b13).
 
-##Send you greetings
+## Send you greetings
 Just change the *name* parameter and share the following url: `https://whitetigle.github.io/fsharp_advent_2017/?name=InsertYourName`
 
 ## Special Credits
