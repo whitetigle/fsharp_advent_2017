@@ -4,7 +4,9 @@ open Fable.Core.JsInterop
 open Fable.Import.Animejs
 open Fable.Import.Pixi.Sound
 open Fable.Pixi
+open Fable.Import.Pixi
 open Types
+open Fable.Import.Pixi.PIXI
 
 module SU = SpriteUtils
 
@@ -127,6 +129,13 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
       let maxSpace = messages |> Seq.map (fun m -> m.Length) |> Seq.max |> float |> (*) space
       let xMargin = (gameWidth - maxSpace) * 0.5 + space * 0.5
 
+      let textOptions = jsOptions<TextStyleOptions>( fun o ->
+        o.fill <- Some !![|"#19b14c";"#f4e182"|]
+        o.fontSize <- !!100.
+        o.fontFamily <- !!"Playfair Display SC"
+      )
+      let style = TextStyle textOptions
+
       for j = 0 to (messages.Length - 1) do
         let targetPosition = gameHeight * 0.4 + (float j * 80.)
         let message = messages.[j]
@@ -137,11 +146,20 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
             let x = xMargin + (float i) * space
 
             let s =
+              Text(pixname, style)
+                |> SU.scaleTo rmodel.Scale rmodel.Scale
+                |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Top
+                |> SU.moveTo x gameHeight
+                |> SU.addToLayer "rearAnimLayer"
+
+            (*
+            let s =
               SU.fromTexture pixname
               |> SU.scaleTo rmodel.Scale rmodel.Scale
               |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Top
               |> SU.moveTo x gameHeight
               |> SU.addToLayer "rearAnimLayer"
+            *)
 
             let duration = 500.
             let startupDelay = 1000.
