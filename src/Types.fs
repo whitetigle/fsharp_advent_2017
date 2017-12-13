@@ -32,20 +32,6 @@ type RenderModel = {
   Scenery: PIXI.Sprite list
 }
 
-[<StringEnum>]
-type Chars =
-  | M
-  | E
-  | R
-  | Y
-  | C
-  | H
-  | I
-  | S
-  | T
-  | A
-  | SPACE
-
 type SubState =
   | RiseCurtain
   | LaunchTitle

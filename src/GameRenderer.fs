@@ -122,49 +122,43 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
       rmodel
 
     | LaunchTitle ->
-      let pixname char =
-        let s = string char
-        s.ToLower()
-
-      let message = [M;E;R;R;Y;SPACE;C;H;R;I;S;T;M;A;S]
+      let messages = [|"MERRY MERRY"; "CHRISTMAS"|]
       let space = 100. * rmodel.Scale
-      let maxSpace = (float message.Length) * space
+      let maxSpace = messages |> Seq.map (fun m -> m.Length) |> Seq.max |> float |> (*) space
       let xMargin = (gameWidth - maxSpace) * 0.5 + space * 0.5
 
-      let targetPosition = gameHeight * 0.4
-      message
-      |> Seq.iteri( fun i char ->
+      for j = 0 to (messages.Length - 1) do
+        let targetPosition = gameHeight * 0.4 + (float j * 80.)
+        let message = messages.[j]
+        for i = 0 to (message.Length - 1) do
+          let char = message.[i]
+          if char <> ' ' then
+            let pixname = (string char).ToLower()
+            let x = xMargin + (float i) * space
 
-        match char with
-        | SPACE -> ()
-        | _ ->
-          let pixname = pixname char
-          let x = xMargin + (float i) * space
+            let s =
+              SU.fromTexture pixname
+              |> SU.scaleTo rmodel.Scale rmodel.Scale
+              |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Top
+              |> SU.moveTo x gameHeight
+              |> SU.addToLayer "rearAnimLayer"
 
-          let s =
-            SU.fromTexture pixname
-            |> SU.scaleTo rmodel.Scale rmodel.Scale
-            |> SU.anchorTo SU.XAnchor.Center SU.YAnchor.Top
-            |> SU.moveTo x gameHeight
-            |> SU.addToLayer "rearAnimLayer"
+            let duration = 500.
+            let startupDelay = 1000.
+            let target = s.position
+            let options = jsOptions<AnimInput> (fun o ->
+              o.Item <- "y", targetPosition
+              o.targets <- Some !!target
+              o.duration <- !!duration
+              o.elasticity <- !!500.
+              o.easing <- !!EaseInCubic
+              o.delay <- !!((float i) * duration + startupDelay)
+            )
+            let instance = Fable.AnimeUtils.GetInstance (Some options)
 
-          let duration = 500.
-          let startupDelay = 1000.
-          let target = s.position
-          let options = jsOptions<AnimInput> (fun o ->
-            o.Item <- "y", targetPosition
-            o.targets <- Some !!target
-            o.duration <- !!duration
-            o.elasticity <- !!500.
-            o.easing <- !!EaseInCubic
-            o.delay <- !!((float i) * duration + startupDelay)
-          )
-          let instance = Fable.AnimeUtils.GetInstance (Some options)
-
-          // when we're done, spread green stars above the letter
-          instance.complete <- fun _ ->
-            Prepare (SpreadGreenStars( x,targetPosition + 15. * rmodel.Scale)) |> dispatch
-      )
+            // when we're done, spread green stars above the letter
+            instance.complete <- fun _ ->
+              Prepare (SpreadGreenStars( x,targetPosition + 15. * rmodel.Scale)) |> dispatch
 
       Prepare PlayJingleBells |> dispatch
       rmodel
