@@ -1,5 +1,4 @@
-docs/bundle.js*
-
+# docs/bundle.js*
 # Node
 node_modules/
 
