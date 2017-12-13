@@ -4,11 +4,12 @@ open Fable.Core.JsInterop
 open Fable.Import.Animejs
 open Fable.Import.Pixi.Sound
 open Fable.Pixi
-open Fable.Import.Pixi
 open Types
 open Fable.Import.Pixi.PIXI
 
 module SU = SpriteUtils
+
+let getParameterByName(name: string): string = importMember "./Util"
 
 let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (delta:float): RenderModel =
 
@@ -124,21 +125,25 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
       rmodel
 
     | LaunchTitle ->
-      let messages = [|"MERRY MERRY"; "CHRISTMAS"|]
+      let name = getParameterByName("name")
+      let messages =
+        if isNull name
+        then [|"MERRY CHRISTMAS"|]
+        else [|"MERRY CHRISTMAS"; name|]
       let space = 100. * rmodel.Scale
-      let maxSpace = messages |> Seq.map (fun m -> m.Length) |> Seq.max |> float |> (*) space
-      let xMargin = (gameWidth - maxSpace) * 0.5 + space * 0.5
 
       let textOptions = jsOptions<TextStyleOptions>( fun o ->
-        o.fill <- Some !![|"#19b14c";"#f4e182"|]
-        o.fontSize <- !!100.
-        o.fontFamily <- !!"Playfair Display SC"
+        o.fill <- Some(box [|"#19b14c";"#f4e182"|])
+        o.fontSize <- Some !^100.
+        o.fontFamily <- Some !^"Playfair Display SC"
       )
       let style = TextStyle textOptions
 
       for j = 0 to (messages.Length - 1) do
         let targetPosition = gameHeight * 0.4 + (float j * 80.)
         let message = messages.[j]
+        let maxSpace = float message.Length * space
+        let xMargin = (gameWidth - maxSpace) * 0.5 + space * 0.5
         for i = 0 to (message.Length - 1) do
           let char = message.[i]
           if char <> ' ' then
@@ -162,15 +167,18 @@ let render (stateModel: StateModel) (renderModel: RenderModel option) dispatch (
             *)
 
             let duration = 500.
-            let startupDelay = 1000.
+            let startupDelay =
+              if j > 0
+              then 1000. + (float messages.[j - 1].Length * 500.)
+              else 1000.
             let target = s.position
             let options = jsOptions<AnimInput> (fun o ->
               o.Item <- "y", targetPosition
               o.targets <- Some !!target
-              o.duration <- !!duration
-              o.elasticity <- !!500.
-              o.easing <- !!EaseInCubic
-              o.delay <- !!((float i) * duration + startupDelay)
+              o.duration <- !^duration
+              o.elasticity <- Some !^500.
+              o.easing <- Some !^EaseInCubic
+              o.delay <- Some !^((float i) * duration + startupDelay)
             )
             let instance = Fable.AnimeUtils.GetInstance (Some options)
 
