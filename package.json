@@ -3,11 +3,13 @@
   "scripts": {
     "build": "webpack -p",
     "start": "webpack-dev-server",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "cd src && dotnet fable yarn-run build",
+    "publish": "gh-pages -d docs"
   },
   "dependencies": {
-    "babel-runtime": "6.26.0",
     "animejs": "^2.2.0",
+    "babel-runtime": "6.26.0",
     "bulma": "^0.6.0",
     "core-js": "^2.5.1",
     "css-loader": "^0.28.7",
@@ -26,6 +28,7 @@
     "babel-loader": "^7.1.2",
     "fable-loader": "^1.1.4",
     "fable-utils": "^1.0.4",
+    "gh-pages": "^1.1.0",
     "loglevel": "^1.5.1",
     "webpack": "^3.8.1",
     "webpack-dev-server": "^2.9.3"
